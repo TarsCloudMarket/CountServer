@@ -1,0 +1,70 @@
+cloud:
+  group: Base
+  name: CountServer
+  logo: assets/logo.png
+  version: latest
+  changelist: Changelist.md
+  lang: cpp
+  description: >-
+    Using raft to build a unique counting service with at least 3 nodes can ensure the consistency of multi node data Each call increments the count and returns the latest count
+  description_cn: >-
+    使用raft构建唯一计数服务, 至少3节点, 可以保证多节点的数据的一致性.每次调用都增加计数, 并返回最新的计数.
+  collaborators:
+    - ruanshudong@qq.com
+  repository: https://github.com/TarsCloudMarket/CountServer.git
+  readme: README.en.md
+  readme_cn: README.md
+  protocols:
+    - tars/Count.tars
+  assets: 
+    - assets
+app: Base 
+server: CountServer
+template: tars.cpp
+profile: ''
+servants:
+  - name: RaftObj
+    port: 10000
+    isTars: true
+    isTcp: true
+    thread: 2
+    capacity: 100000
+    connection: 10000
+    timeout: 30000
+  - name: CountObj
+    port: 20000
+    isTars: true
+    isTcp: true
+    thread: 5
+    capacity: 100000
+    connection: 100000
+    timeout: 60000
+replicas: 3
+hostNetwork: false
+hostIPC: false
+hostPorts: []
+repo:
+  id: ""
+  image: docker.tarsyun.com/tars/countserver:latest
+  secret: cloud-market-secret
+mounts:
+  - name: count-data
+    mountPath: /count-data
+    source:
+      tLocalVolume: {}
+config:
+  - name: count.conf
+    content: |
+      <root>
+        <raft>
+          	electionTimeoutMilliseconds = 3000
+            heartbeatPeriodMilliseconds = 300
+            snapshotPeriodSeconds       = 6000
+            maxLogEntriesPerRequest     = 100
+            maxLogEntriesMemQueue       = 3000
+            maxLogEntriesTransfering    = 1000
+        </raft>
+        #起始计数
+        start-count = 100000
+        storage-path=/count-data
+      </root>
