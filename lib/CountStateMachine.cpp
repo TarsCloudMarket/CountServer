@@ -49,23 +49,42 @@ void CountStateMachine::close()
 
 void CountStateMachine::onBecomeLeader(int64_t term)
 {
+	TARS_NOTIFY_NORMAL("onBecomeLeader term:" + TC_Common::tostr(term));
 //	cout << "onBecomeLeader term:" <<  term << endl;
 	TLOG_DEBUG("term:" << term << endl);
 }
 
 void CountStateMachine::onBecomeFollower()
 {
+	TARS_NOTIFY_NORMAL("onBecomeFollower");
 	TLOG_DEBUG("onBecomeFollower" << endl);
 }
 
 void CountStateMachine::onBeginSyncShapshot()
 {
+	TARS_NOTIFY_NORMAL("onBeginSyncShapshot");
 	TLOG_DEBUG("onBeginSyncShapshot" << endl);
 }
 
 void CountStateMachine::onEndSyncShapshot()
 {
+	TARS_NOTIFY_NORMAL("onEndSyncShapshot");
 	TLOG_DEBUG("onEndSyncShapshot" << endl);
+}
+
+void CountStateMachine::onStartElection(int64_t term)
+{
+	TARS_NOTIFY_NORMAL("start election");
+}
+
+void CountStateMachine::onJoinCluster()
+{
+	TARS_NOTIFY_NORMAL("join cluster");
+}
+
+void CountStateMachine::onLeaveCluster()
+{
+	TARS_NOTIFY_NORMAL("leave cluster");
 }
 
 int64_t CountStateMachine::onLoadData()
