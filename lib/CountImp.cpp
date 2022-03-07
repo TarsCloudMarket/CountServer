@@ -21,15 +21,16 @@ void CountImp::destroy()
 
 int CountImp::count(const CountReq &req, CountRsp &rsp, tars::CurrentPtr current)
 {
+	LOG_CONSOLE_DEBUG << req.writeToJsonString() << endl;
+
 	_raftNode->forwardOrReplicate(current, [&](){
 
 		TarsOutputStream<BufferWriterString> os;
-		req.writeTo(os);
 
 		os.write(CountStateMachine::COUNT_TYPE, 0);
 		os.write(req, 1);
 
-		return  os.getByteBuffer();
+		return os.getByteBuffer();
 	});
 
 	return 0;
@@ -37,7 +38,7 @@ int CountImp::count(const CountReq &req, CountRsp &rsp, tars::CurrentPtr current
 
 int CountImp::query(const QueryReq &req, CountRsp &rsp, tars::TarsCurrentPtr current)
 {
-	if(req.leader &&_raftNode->isLeader())
+	if(req.leader && !_raftNode->isLeader())
 	{
 		_raftNode->forwardToLeader(current);
 		return 0;

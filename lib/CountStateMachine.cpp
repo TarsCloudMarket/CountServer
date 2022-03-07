@@ -50,7 +50,7 @@ void CountStateMachine::close()
 void CountStateMachine::onBecomeLeader(int64_t term)
 {
 	TARS_NOTIFY_NORMAL("onBecomeLeader term:" + TC_Common::tostr(term));
-//	cout << "onBecomeLeader term:" <<  term << endl;
+//	LOG_CONSOLE_DEBUG << "onBecomeLeader term:" <<  term << endl;
 	TLOG_DEBUG("term:" << term << endl);
 }
 
@@ -169,6 +169,7 @@ void CountStateMachine::onApply(const char *buff, size_t length, int64_t applied
 	is.read(type, 0, true);
 
 	TLOG_DEBUG(type << ", appliedIndex:" << appliedIndex << ", size:" << _onApply.size() << endl);
+	LOG_CONSOLE_DEBUG << "length:" << length << ", type:" << type << ", appliedIndex:" << appliedIndex << ", size:" << _onApply.size() << endl;
 
 	auto it = _onApply.find(type);
 	assert(it != _onApply.end());
@@ -178,8 +179,10 @@ void CountStateMachine::onApply(const char *buff, size_t length, int64_t applied
 
 void CountStateMachine::onCount(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)
 {
+	TLOG_DEBUG("appliedIndex:" << appliedIndex << endl);
+
 	CountReq req;
-	req.readFrom(is);
+	is.read(req, 1, false);
 
 	string key = req.sBusinessName + "-" + req.sKey;
 

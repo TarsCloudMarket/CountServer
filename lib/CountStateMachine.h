@@ -124,27 +124,27 @@ protected:
 	using onapply_type = std::function<void(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)>;
 
 	void onCount(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
-
-	//为了保持住key, 不用直接用string 否则mac下, rocksdb::Slice莫名其妙内存被释放了, linux上没问题
-	struct AutoSlice
-	{
-		AutoSlice(const char *buff, size_t len) : data(buff), length(len)
-		{
-		}
-
-		~AutoSlice()
-		{
-			if(data)
-			{
-				delete data;
-				data = NULL;
-			}
-			length = 0;
-		}
-
-		const char *data = NULL;
-		size_t length = 0;
-	};
+//
+//	//为了保持住key, 不用直接用string 否则mac下, rocksdb::Slice莫名其妙内存被释放了, linux上没问题
+//	struct AutoSlice
+//	{
+//		AutoSlice(const char *buff, size_t len) : data(buff), length(len)
+//		{
+//		}
+//
+//		~AutoSlice()
+//		{
+//			if(data)
+//			{
+//				delete data;
+//				data = NULL;
+//			}
+//			length = 0;
+//		}
+//
+//		const char *data = NULL;
+//		size_t length = 0;
+//	};
 
 
 	void open(const string &dbDir);
