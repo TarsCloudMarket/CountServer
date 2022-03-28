@@ -16,6 +16,8 @@ cloud:
   readme_cn: README.md
   protocols:
     - tars/Count.tars
+  open_source: false
+  independent: true
   assets: 
     - assets
 app: Base 
