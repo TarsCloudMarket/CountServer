@@ -33,6 +33,10 @@ public:
 	 **/
 	virtual void destroyApp();
 
+protected:
+	bool cmdGet(const string&command, const string&params, string& result);
+	bool cmdSet(const string&command, const string&params, string& result);
+	
 public:
 	int64_t _startCount = 1;
 };

@@ -58,6 +58,8 @@ void CountServer::initialize()
 
 	onInitializeRaft(raftOptions, "CountObj", dataPath + "CountLog-" + TC_Common::tostr(_index));
 
+	TARS_ADD_ADMIN_CMD_NORMAL("count.get", CountServer::cmdGet);
+	TARS_ADD_ADMIN_CMD_NORMAL("count.set", CountServer::cmdSet);
 }
 
 void CountServer::destroyApp()
@@ -65,4 +67,69 @@ void CountServer::destroyApp()
 	_stateMachine->close();
 
 	onDestroyRaft();
+}
+
+
+//storage.get table mkey ukey
+bool CountServer::cmdGet(const string&command, const string&params, string& result)
+{
+	vector<string> v = TC_Common::sepstr<string>(params, " ");
+
+	if(v.size() >= 2)
+	{
+		QueryReq skey;
+		skey.leader = false;
+		skey.sBusinessName = v[0];
+		skey.sKey = v[1];
+
+		CountRsp data;
+		int ret = _stateMachine->get(skey, data);
+
+		if(ret == RT_SUCC)
+		{
+			result += "data: " + data.writeToJsonString() + "\n";
+		}
+		else
+		{
+			result = "error, ret:" + etos((RetValue)ret);
+		}
+	}
+	else
+	{
+		result = "Invalid parameters.Should be: count.get sBusinessName sKey";
+	}
+	return true;
+
+}
+
+bool CountServer::cmdSet(const string&command, const string&params, string& result)
+{
+	vector<string> v = TC_Common::sepstr<string>(params, " ");
+
+	if(v.size() >= 3)
+	{
+		CountReq data;
+		data.sBusinessName = v[0];
+		data.sKey = v[1];
+		data.iNum = TC_Common::strto<int>(v[2]);
+
+		CountRsp rsp;
+
+		CountPrx prx = _raftNode->getBussLeaderPrx<CountPrx>();
+		int ret = prx->count(data, rsp);
+
+		if(ret == RT_SUCC)
+		{
+			result = "count succ";
+		}
+		else
+		{
+			result = "set error, ret:" + etos((RetValue)ret);
+		}
+	}
+	else
+	{
+		result = "Invalid parameters.Should be: count.set sBusinessName sKey value";
+	}
+	return true;
 }
