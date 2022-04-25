@@ -53,7 +53,7 @@ The deployment focuses on:
 ## Instructions for use
 
 - Using C++, the underlying data storage uses rockesdb
-- Get the tars protocol file and call the service through countprx
+- Get the tars protocol file and call the service through CountPrx 
 - The technical interface 'count' and the data interface are finally forwarded to the leader to perform write processing
 - The query data interface can specify whether to execute in the leader. If the leader is not specified, it is not guaranteed that the written data can be found immediately, because there is a certain delay in data synchronization
 - If the query specifies the leader every time, it will affect the efficiency, but if the leader is not specified, there will be data delay (usually in milliseconds)
