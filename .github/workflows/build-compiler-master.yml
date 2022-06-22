@@ -33,4 +33,4 @@ jobs:
           build-args: user=${{ secrets.name }},pass=${{ secrets.pass }}
           platforms: linux/amd64,linux/arm64
           secrets: |
-            GIT_AUTH_TOKEN=${{ secrets.MYTOKEN }}
+            GIT_AUTH_TOKEN=${{ secrets.MY_TOKEN }}
