@@ -10,7 +10,6 @@ on:
 
 jobs:
   build:
-    container: tarscloud/base-compiler
     runs-on: ubuntu-20.04
     steps:
       - name: env
@@ -25,17 +24,15 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.MY_TOKEN }}
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-      - name: Cache build modules
-        uses: actions/cache@v2
-        env:
-          cache-name: cache-build-modules
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build and push
+        uses: docker/build-push-action@v3
         with:
-          path: build
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
-      - name: make
-        run: mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j8
-      - name: build docker
-        run: |
-          exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml latest true
+          push: false
+          tags: compiler
+          file: Dockerfile
+          build-args: user=${{ secrets.name }},pass=${{ secrets.pass }}
+          platforms: linux/amd64,linux/arm64
