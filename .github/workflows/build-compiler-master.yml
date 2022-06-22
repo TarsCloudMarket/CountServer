@@ -1,4 +1,4 @@
-name: build-base-compiler-master
+name: build-master
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
       - master
-      
+
 jobs:
   build:
     container: tarscloud/base-compiler
@@ -32,7 +32,7 @@ jobs:
         env:
           cache-name: cache-build-modules
         with:
-          path: build 
+          path: build
           key: ${{ runner.os }}-build-${{ env.cache-name }}
       - name: make
         run: mkdir -p build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release && make -j8

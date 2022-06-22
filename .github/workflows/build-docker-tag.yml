@@ -1,10 +1,10 @@
-name: build-base-compiler-master
+name: build-tag
 
 on:
   push:
     tags:
-      - v* 
-      
+      - v*
+
 jobs:
   build:
     container: tarscloud/base-compiler
