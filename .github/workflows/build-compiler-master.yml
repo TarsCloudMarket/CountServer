@@ -20,10 +20,6 @@ jobs:
           registry: docker.tarsyun.com
           username: ${{ secrets.name }}
           password: ${{ secrets.pass }}
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-          token: ${{ secrets.MY_TOKEN }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
       - name: Set up Docker Buildx
@@ -36,4 +32,5 @@ jobs:
           file: Dockerfile
           build-args: user=${{ secrets.name }},pass=${{ secrets.pass }}
           platforms: linux/amd64,linux/arm64
-          github-token: ${{ secrets.MY_TOKEN }}
+          secrets: |
+            GIT_AUTH_TOKEN=${{ secrets.MYTOKEN }}
