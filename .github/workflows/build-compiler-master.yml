@@ -44,14 +44,10 @@ jobs:
           docker pull tarscloud/base-compiler --platform=arm64
       - name: build arm64
         run: |
-          docker run -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
-      - name: build docker arm64
-        run: |
-          exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
+          docker run --platform linux/arm64 -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir arm_build; cd arm_build; cmake ..; make -j8;exec-build-cloud.sh tarscloud/tars.cppbase cpp arm_build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true"
       - name: build_amd64
         run: |
           docker pull tarscloud/base-compiler --platform=amd64
-          docker run -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
-      - name: build docker amd64
+      - name: build amd64
         run: |
-          exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
+          docker run --platform linux/amd64  -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir amd_build; cd amd_build; cmake ..; make -j8;exec-build-cloud.sh tarscloud/tars.cppbase cpp amd_build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true"
