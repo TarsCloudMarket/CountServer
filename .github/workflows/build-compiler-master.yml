@@ -43,6 +43,7 @@ jobs:
         run: |
           docker pull tarscloud/base-compiler --platform=arm64
       - name: build arm64
+        run: |
           docker run -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
       - name: build docker arm64
         run: |
