@@ -41,6 +41,7 @@ jobs:
       #     docker buildx build . --file Dockerfile --tag test --platform=linux/amd64,linux/arm64 -o type=docker
       - name: pull arm64
         run: |
+          export DOCKER_CLI_EXPERIMENTAL=enabled
           docker pull tarscloud/base-compiler --platform=arm64
           docker inspect tarscloud/base-compiler
           docker run --platform linux/arm64 -v `pwd`:/data tarscloud/base-compiler ls /data
