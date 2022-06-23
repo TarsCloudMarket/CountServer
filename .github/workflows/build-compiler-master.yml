@@ -42,6 +42,7 @@ jobs:
       - name: pull arm64
         run: |
           docker pull tarscloud/base-compiler --platform=arm64
+          docker inspect tarscloud/base-compiler
       - name: build arm64
         run: |
           docker run --platform linux/arm64 -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir arm_build; cd arm_build; cmake ..; make -j8;exec-build-cloud.sh tarscloud/tars.cppbase cpp arm_build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true"
