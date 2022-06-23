@@ -42,14 +42,14 @@ jobs:
       - name: build_arm64
         run: |
           docker pull tarscloud/base-compiler --platform=arm64
-          docker run -it --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
+          docker run --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
       - name: build docker arm64
         run: |
           exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
       - name: build_amd64
         run: |
           docker pull tarscloud/base-compiler --platform=amd64
-          docker run -it --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
+          docker run --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
       - name: build docker amd64
         run: |
           exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
