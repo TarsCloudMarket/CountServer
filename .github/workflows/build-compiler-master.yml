@@ -25,14 +25,12 @@ jobs:
         with:
           submodules: true
           token: ${{ secrets.MY_TOKEN }}
-      - name: Set up QEMU
-        run: |
-          docker run --rm --privileged tonistiigi/binfmt:latest --install all
       - name: Create Build
         run: |
+          docker run --rm --privileged tonistiigi/binfmt:latest --install all
           export DOCKER_CLI_EXPERIMENTAL=enabled
-          docker buildx create --name mybuild --use
-          docker buildx inspect --bootstrap --builder mybuild
+          docker buildx create --name mybuilder --use
+          docker buildx inspect --bootstrap --builder mybuilder
       - name: Buildx
         run: |
           exec-buildx-cloud.sh cpp yaml/values.yaml ${{ steps.get_version.outputs.VERSION }} Dockerfile
