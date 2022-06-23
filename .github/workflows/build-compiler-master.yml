@@ -32,5 +32,7 @@ jobs:
           docker buildx inspect --bootstrap --builder k8s-framework-builder
       - name: Buildx
         run: |
-          docker run -v `pwd`:/data --entrypoint "" tarscloud/base-deploy /data/create-dcokerfile.sh ${{ steps.get_version.outputs.VERSION }}
-          #exec-buildx-cloud.sh cpp yaml/values.yaml ${{ steps.get_version.outputs.VERSION }} Dockerfile
+          docker run -v `pwd`:/data --entrypoint "" tarscloud/base-deploy sh -c "cd /data && /usr/bin/create-buildx-dockerfile.sh cpp yaml/values.yaml ${{ steps.get_version.outputs.VERSION }} Dockerfile"
+      - name: Create Docker
+        run: |
+          ./docker-buildx-cloud.sh
