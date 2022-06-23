@@ -31,9 +31,8 @@ jobs:
       - name: Create Build
         run: |
           export DOCKER_CLI_EXPERIMENTAL=enabled
-          DATE=`date +"%Y%m%d%H%M%S"`
-          docker buildx create --name builder-${DATE} --driver docker-container  --buildkitd-flags '--allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host' --use
-          docker buildx inspect --bootstrap --builder builder-${DATE}
+          docker buildx create --name mybuild --use
+          docker buildx inspect --bootstrap --builder mybuild
       - name: Buildx
         run: |
           exec-buildx-cloud.sh cpp yaml/values.yaml ${{ steps.get_version.outputs.VERSION }} Dockerfile
