@@ -32,6 +32,6 @@ jobs:
         run: |
           docker run --rm --privileged tonistiigi/binfmt:latest --install all
           export DOCKER_CLI_EXPERIMENTAL=enabled 
-          docker buildx create --name builder --driver docker-container --buildkitd-flags --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host --use
+          docker buildx create --name builder --driver docker-container --use
           docker buildx inspect --bootstrap --builder builder
           docker buildx build . --file Dockerfile --tag test --platform=linux/amd64,linux/arm64 -o type=docker
