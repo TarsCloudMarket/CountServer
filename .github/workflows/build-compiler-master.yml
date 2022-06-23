@@ -39,17 +39,18 @@ jobs:
       # - name: Buildx
       #   run: |
       #     docker buildx build . --file Dockerfile --tag test --platform=linux/amd64,linux/arm64 -o type=docker
-      - name: build_arm64
+      - name: pull arm64
         run: |
           docker pull tarscloud/base-compiler --platform=arm64
-          docker run --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
+      - name: build arm64
+          docker run -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
       - name: build docker arm64
         run: |
           exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
       - name: build_amd64
         run: |
           docker pull tarscloud/base-compiler --platform=amd64
-          docker run --rm -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
+          docker run -v `pwd`:/data tarscloud/base-compiler sh -c "cd /data; mkdir build; cd build; cmake ..; make -j8"
       - name: build docker amd64
         run: |
           exec-build-cloud.sh tarscloud/tars.cppbase cpp build/bin/CountServer yaml/values.yaml ${{ steps.get_version.outputs.VERSION }}  true
