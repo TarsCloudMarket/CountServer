@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    container: tarscloud/base-compiler
+    # container: tarscloud/base-compiler
     runs-on: ubuntu-20.04
     steps:
       - name: env
@@ -28,9 +28,8 @@ jobs:
       - name: Create Build
         run: |
           docker run --rm --privileged tonistiigi/binfmt:latest --install all
-          export DOCKER_CLI_EXPERIMENTAL=enabled
-          docker buildx create --name mybuilder --use
-          docker buildx inspect --bootstrap --builder mybuilder
+          docker buildx create --name k8s-framework-builder --use
+          docker buildx inspect --bootstrap --builder k8s-framework-builder
       - name: Buildx
         run: |
           exec-buildx-cloud.sh cpp yaml/values.yaml ${{ steps.get_version.outputs.VERSION }} Dockerfile
