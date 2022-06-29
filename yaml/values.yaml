@@ -19,13 +19,14 @@ cloud:
     - tars/Count.tars
   open_source: false
   independent: true
+  container: tars.cppbase
   assets:
     - assets
   deploy: yaml/values.yaml
 app: Base
 server: CountServer
 template: tars.cpp
-profile: ''
+profile: ""
 servants:
   - name: RaftObj
     port: 10000
@@ -48,7 +49,7 @@ hostNetwork: false
 hostIPC: false
 hostPorts: []
 repo:
-  id: ''
+  id: ""
   image: docker.tarsyun.com/base/countserver:latest
   secret: cloud-market-secret
 mounts:
