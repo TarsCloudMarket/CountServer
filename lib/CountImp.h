@@ -24,6 +24,8 @@ public:
 
     virtual int query(const QueryReq &req, CountRsp &rsp, tars::CurrentPtr current);
 
+	virtual int circleCount(const CircleReq &req, CountRsp &rsp, tars::CurrentPtr current);
+
 protected:
 
 	shared_ptr<RaftNode>    _raftNode;

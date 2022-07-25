@@ -54,9 +54,10 @@
 
 - 使用 c++, 底层数据存储用 rockesdb
 - 拿到 tars 协议文件, 通过 CountPrx 即可完成服务的调用
-- 技术接口`count`数据接口最终都转发到 leader 来执行写处理
+- 计数接口`count`数据接口最终都转发到 leader 来执行写处理
 - 查询数据接口可以指定是否在 leader 执行, 如果不指定 leader, 不保证写入的数据马上能查到, 因为数据同步有一定延时
 - 如果查询每次指定 leader 会影响效率, 但是如果不指定 leader 会有数据延迟(通常都是毫秒级别)
 - 可以在 tarsweb 上, 发送命令查看和修改表的数据, 方便调试
   > - count.get sBusinessName sKey
-  > - count.set sBusinessName sKey value
+  > - count.set sBusinessName sKey value default
+  > - count.circle sBusinessName sKey value min max 

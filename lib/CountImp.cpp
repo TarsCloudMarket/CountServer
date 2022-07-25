@@ -36,6 +36,23 @@ int CountImp::count(const CountReq &req, CountRsp &rsp, tars::CurrentPtr current
 	return 0;
 }
 
+int CountImp::circleCount(const CircleReq &req, CountRsp &rsp, tars::CurrentPtr current)
+{
+	LOG_CONSOLE_DEBUG << req.writeToJsonString() << endl;
+
+	_raftNode->forwardOrReplicate(current, [&](){
+
+		TarsOutputStream<BufferWriterString> os;
+
+		os.write(CountStateMachine::CIRCLE_TYPE, 0);
+		os.write(req, 1);
+
+		return os.getByteBuffer();
+	});
+
+	return 0;
+}
+
 int CountImp::query(const QueryReq &req, CountRsp &rsp, tars::TarsCurrentPtr current)
 {
 	if(req.leader && !_raftNode->isLeader())

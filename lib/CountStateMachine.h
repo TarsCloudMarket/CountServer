@@ -25,6 +25,7 @@ class CountStateMachine : public StateMachine
 {
 public:
 	const static string COUNT_TYPE;
+	const static string CIRCLE_TYPE;
 
 	/**
 	 * 构造
@@ -114,38 +115,12 @@ public:
 	 */
 	void close();
 
-	/**
-	 * 设置启动计数
-	 * @param count
-	 */
-	void setStartCount(int64_t count) { _startCount = count; }
 protected:
 
 	using onapply_type = std::function<void(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)>;
 
 	void onCount(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
-//
-//	//为了保持住key, 不用直接用string 否则mac下, rocksdb::Slice莫名其妙内存被释放了, linux上没问题
-//	struct AutoSlice
-//	{
-//		AutoSlice(const char *buff, size_t len) : data(buff), length(len)
-//		{
-//		}
-//
-//		~AutoSlice()
-//		{
-//			if(data)
-//			{
-//				delete data;
-//				data = NULL;
-//			}
-//			length = 0;
-//		}
-//
-//		const char *data = NULL;
-//		size_t length = 0;
-//	};
-
+	void onCircle(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 
 	void open(const string &dbDir);
 
@@ -154,7 +129,6 @@ protected:
 	int getNoLock(const string &key, tars::Int64 &value);
 
 protected:
-	int64_t 		_startCount = 1;
 	string          _raftDataDir;
 	rocksdb::DB     *_db = NULL;
 

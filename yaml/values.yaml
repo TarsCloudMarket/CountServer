@@ -59,4 +59,4 @@ mounts:
       tLocalVolume: {}
 config:
   - name: count.conf
-    content: "<root>\n  <raft>\n    \telectionTimeoutMilliseconds = 3000\n      heartbeatPeriodMilliseconds = 300\n      snapshotPeriodSeconds       = 6000\n      maxLogEntriesPerRequest     = 100\n      maxLogEntriesMemQueue       = 3000\n      maxLogEntriesTransfering    = 1000\n  </raft>\n  #起始计数\n  start-count = 100000\n  storage-path=/count-data\n</root>\n"
+    content: "<root>\n  <raft>\n    \telectionTimeoutMilliseconds = 3000\n      heartbeatPeriodMilliseconds = 300\n      snapshotPeriodSeconds       = 6000\n      maxLogEntriesPerRequest     = 100\n      maxLogEntriesMemQueue       = 3000\n      maxLogEntriesTransfering    = 1000\n  </raft>\n  storage-path=/count-data\n</root>\n"

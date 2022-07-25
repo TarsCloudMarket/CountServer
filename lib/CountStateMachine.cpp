@@ -10,12 +10,14 @@
 #include "RaftNode.h"
 
 const string CountStateMachine::COUNT_TYPE  = "1";
+const string CountStateMachine::CIRCLE_TYPE  = "2";
 
 CountStateMachine::CountStateMachine(const string &dataPath)
 {
 	_raftDataDir = dataPath;
 
 	_onApply[COUNT_TYPE] = std::bind(&CountStateMachine::onCount, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_onApply[CIRCLE_TYPE] = std::bind(&CountStateMachine::onCircle, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 }
 
 CountStateMachine::~CountStateMachine()
@@ -187,6 +189,7 @@ void CountStateMachine::onCount(TarsInputStream<> &is, int64_t appliedIndex, con
 	string key = req.sBusinessName + "-" + req.sKey;
 
 	CountRsp rsp;
+	rsp.iCount = req.iDefault;
 
 	rsp.iRet = getNoLock(key, rsp.iCount);
 
@@ -222,7 +225,61 @@ void CountStateMachine::onCount(TarsInputStream<> &is, int64_t appliedIndex, con
 	{
 		//如果客户端请求过来的, 直接回包
 		//如果是其他服务器同步过来, 不用回包了
-		Count::async_response_count(callback->getCurrentPtr(), rsp.iRet, rsp);
+		Base::Count::async_response_count(callback->getCurrentPtr(), rsp.iRet, rsp);
+	}
+}
+
+void CountStateMachine::onCircle(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)
+{
+	TLOG_DEBUG("appliedIndex:" << appliedIndex << endl);
+
+	CircleReq req;
+	is.read(req, 1, false);
+
+	string key = req.sBusinessName + "-" + req.sKey;
+
+	CountRsp rsp;
+	rsp.iCount = req.iMinNum;
+
+	rsp.iRet = getNoLock(key, rsp.iCount);
+
+	if(rsp.iRet != RT_SUCC)
+	{
+		rsp.sMsg = "get data from rocksdb error!";
+	}
+	else
+	{
+		rsp.iCount = rsp.iCount + req.iNum;
+		if(rsp.iCount > req.iMaxNum)
+		{
+			rsp.iCount = req.iMinNum;
+		}
+
+		string sCount = TC_Common::tostr(rsp.iCount);
+
+		rocksdb::WriteBatch batch;
+		batch.Put(key, sCount);
+		batch.Put("lastAppliedIndex", rocksdb::Slice((const char *)&appliedIndex, sizeof(appliedIndex)));
+
+		rocksdb::WriteOptions wOption;
+		wOption.sync = false;
+
+		auto s = _db->Write(wOption, &batch);
+
+		if(!s.ok())
+		{
+			rsp.iRet = RT_APPLY_ERROR;
+			rsp.sMsg = "save data to rocksdb error!";
+			TLOG_ERROR("Put: key:" << key << ", error!" << endl);
+			exit(-1);
+		}
+	}
+
+	if(callback)
+	{
+		//如果客户端请求过来的, 直接回包
+		//如果是其他服务器同步过来, 不用回包了
+		Base::Count::async_response_circleCount(callback->getCurrentPtr(), rsp.iRet, rsp);
 	}
 }
 
@@ -244,7 +301,6 @@ int CountStateMachine::getNoLock(const string &key, tars::Int64 &count)
 		count = TC_Common::strto<tars::Int64>(value);
 	}
 	else if (s.IsNotFound()) {
-		count = _startCount;
 	}
 	else
 	{
