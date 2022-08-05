@@ -26,6 +26,15 @@ public:
 
 	virtual int circleCount(const CircleReq &req, CountRsp &rsp, tars::CurrentPtr current);
 
+	/**
+	 * 生成随机字符串
+	 */
+	virtual int random(const RandomReq &req, RandomRsp &rsp, tars::CurrentPtr current);
+
+	/**
+	 * 生成随机字符串
+	 */
+	virtual int randomQuery(const QueryReq &req, RandomRsp &rsp, tars::CurrentPtr current);
 protected:
 
 	shared_ptr<RaftNode>    _raftNode;

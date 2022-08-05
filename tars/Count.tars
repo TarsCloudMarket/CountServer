@@ -39,6 +39,29 @@ module Base
         2 optional  bool                    leader = true;              // leader处理
     };
 
+    enum INCLUDE_FLAG
+    {
+        ALL = 0x00FF,                         //所有字符
+        DIGIT = 0x0001,                       //只有数字
+        LOWER = 0x0002,           //小写字母
+        UPPER = 0x0004,           //大写字母
+    };
+
+    struct RandomReq
+    {
+        0 optional  string                  sBusinessName;               // 业务ID，方便跟进问题
+        1 optional  string                  sKey;                        // 当前业务下的计数key
+        2 optional  int                     length = 16;                 // 字符串长度
+        3 optional  int                     includes = 0xff;             // 包含符号
+    };
+
+    struct RandomRsp
+    {
+        0 optional  int                     iRet;                       // 状态码
+        1 optional  string                  sMsg;                       // 消息内容
+        2 optional  string                  sString;                    // 当前字符串
+    };
+
     interface Count
     {
         /**
@@ -55,5 +78,15 @@ module Base
          * 查询当前计数值
          */
         int query(QueryReq req, out CountRsp rsp);
+
+        /**
+         * 生成随机字符串
+         */
+        int random(RandomReq req, out RandomRsp rsp);
+
+        /**
+         * 生成随机字符串
+         */
+        int randomQuery(QueryReq req, out RandomRsp rsp);
     };
 };

@@ -2,16 +2,12 @@
 
 ## 服务说明
 
+实现以下几种功能:
+- 自增计数
+- 指定范围循环自增计数
+- 唯一随机字符串
+
 基于 raft 实现的数据存储服务, 能实现 2n+1 台节点的数据一致性存储.
-
-服务有两个 servant:
-
-- RaftObj: raft 端口接口
-- CountObj: 业务服务模块
-
-使用者调用 CountObj 接口即可, RaftObj 是提供给 raft 协议协商使用.
-
-读接口都带有 leader 参数, 表示是否一定要从 leader 读取数据, 对于实时性以及数据准确性要求不那么高的请求, 可以设置 leader 为 false, 这样能提高整体集群的通信效率.
 
 ## 配置文件
 
@@ -61,3 +57,14 @@
   > - count.get sBusinessName sKey
   > - count.set sBusinessName sKey value default
   > - count.circle sBusinessName sKey value min max 
+
+## 服务说明
+
+服务有两个 servant:
+
+- RaftObj: raft 端口接口
+- CountObj: 业务服务模块
+
+使用者调用 CountObj 接口即可, RaftObj 是提供给 raft 协议协商使用.
+
+读接口都带有 leader 参数, 表示是否一定要从 leader 读取数据, 对于实时性以及数据准确性要求不那么高的请求, 可以设置 leader 为 false, 这样能提高整体集群的通信效率.

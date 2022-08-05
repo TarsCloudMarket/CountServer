@@ -62,7 +62,6 @@ public:
 		}
 	}
 
-
 	inline void testCircle(const shared_ptr<CountServer> &server)
 	{
 		try
@@ -89,6 +88,31 @@ public:
 		}
 	}
 
+	inline void testRandomString(const shared_ptr<CountServer> &server)
+	{
+		try
+		{
+			RandomReq req;
+			req.sBusinessName= "test";
+			req.sKey = "random";
+			req.length = 10;
+			req.includes = ALL;
+
+			CountPrx prx = server->node()->getBussLeaderPrx<CountPrx>();
+
+			RandomRsp rsp;
+
+			int ret = prx->random(req, rsp);
+
+			ASSERT_TRUE(ret == 0);
+
+			ASSERT_TRUE(rsp.sString.length() == req.length);
+
+		}
+		catch (exception &ex) {
+			LOG_CONSOLE_DEBUG << ex.what() << endl;
+		}
+	}
 };
 
 TEST_F(CountUnitTest, TestRaft_Set)
@@ -110,6 +134,102 @@ TEST_F(CountUnitTest, TestRaft_Circle)
 	raftTest->testAll();
 }
 
+TEST_F(CountUnitTest, TestRaft_RandomString)
+{
+	auto raftTest = std::make_shared<RaftTest<CountServer>>();
+	raftTest->initialize("Base", "CountServer", "CountObj", "count-log", 22000, 32000);
+	raftTest->setBussFunc(std::bind(&CountUnitTest::testRandomString, this, std::placeholders::_1));
+
+	raftTest->testAll();
+}
+
+
+TEST_F(CountUnitTest, RandomString)
+{
+	auto raftTest = std::make_shared<RaftTest<CountServer>>();
+	raftTest->initialize("Base", "CountServer", "CountObj", "count-log", 22000, 32000);
+	raftTest->createServers(3);
+
+	raftTest->startAll();
+
+	raftTest->waitCluster();
+
+	int ret;
+	CountPrx prx = raftTest->get(0)->node()->getBussLeaderPrx<CountPrx>();
+
+	{
+		RandomReq req;
+		req.sBusinessName = "test";
+		req.sKey = "random";
+		req.length = 10;
+		req.includes = ALL;
+
+		RandomRsp rsp;
+
+		ret = prx->random(req, rsp);
+
+		ASSERT_TRUE(ret == 0);
+
+		LOG_CONSOLE_DEBUG << rsp.writeToJsonString() << endl;
+		ASSERT_TRUE(rsp.sString.length() == req.length);
+	}
+
+	{
+
+		RandomReq req;
+		req.sBusinessName= "test";
+		req.sKey = "random";
+		req.length = 12;
+		req.includes = DIGIT;
+
+		RandomRsp rsp;
+
+		ret = prx->random(req, rsp);
+
+		ASSERT_TRUE(ret == 0);
+
+		LOG_CONSOLE_DEBUG << rsp.writeToJsonString() << endl;
+		ASSERT_TRUE(rsp.sString.length() == req.length);
+	}
+
+	{
+
+		RandomReq req;
+		req.sBusinessName= "test";
+		req.sKey = "random";
+		req.length = 10;
+		req.includes = LOWER;
+
+		RandomRsp rsp;
+
+		ret = prx->random(req, rsp);
+
+		ASSERT_TRUE(ret == 0);
+
+		LOG_CONSOLE_DEBUG << rsp.writeToJsonString() << endl;
+		ASSERT_TRUE(rsp.sString.length() == req.length);
+	}
+
+	{
+
+		RandomReq req;
+		req.sBusinessName= "test";
+		req.sKey = "random";
+		req.length = 10;
+		req.includes = UPPER;
+
+		RandomRsp rsp;
+
+		ret = prx->random(req, rsp);
+
+		ASSERT_TRUE(ret == 0);
+
+		LOG_CONSOLE_DEBUG << rsp.writeToJsonString() << endl;
+		ASSERT_TRUE(rsp.sString.length() == req.length);
+	}
+
+	raftTest->stopAll();
+}
 
 int main(int argc, char** argv)
 {

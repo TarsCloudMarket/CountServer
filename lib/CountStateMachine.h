@@ -26,6 +26,7 @@ class CountStateMachine : public StateMachine
 public:
 	const static string COUNT_TYPE;
 	const static string CIRCLE_TYPE;
+	const static string RANDOM_STRING_TYPE;
 
 	/**
 	 * 构造
@@ -111,6 +112,14 @@ public:
 	int get(const QueryReq &req, CountRsp &rsp);
 
 	/**
+	 *
+	 * @param req
+	 * @param rsp
+	 * @return
+	 */
+	int get(const QueryReq &req, RandomRsp &rsp);
+
+	/**
 	 * close
 	 */
 	void close();
@@ -121,12 +130,19 @@ protected:
 
 	void onCount(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 	void onCircle(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
+	void onRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 
 	void open(const string &dbDir);
 
 	string getDbDir() { return _raftDataDir + FILE_SEP + "rocksdb_data"; }
 
+	string createRandomString(int length, INCLUDE_FLAG includes);
+
 	int getNoLock(const string &key, tars::Int64 &value);
+
+	int getNoLock(const string &key, string &value);
+
+	int hasNoLock(const string &key, bool &has);
 
 protected:
 	string          _raftDataDir;

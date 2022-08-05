@@ -11,6 +11,7 @@
 
 const string CountStateMachine::COUNT_TYPE  = "1";
 const string CountStateMachine::CIRCLE_TYPE  = "2";
+const string CountStateMachine::RANDOM_STRING_TYPE  = "3";
 
 CountStateMachine::CountStateMachine(const string &dataPath)
 {
@@ -18,6 +19,9 @@ CountStateMachine::CountStateMachine(const string &dataPath)
 
 	_onApply[COUNT_TYPE] = std::bind(&CountStateMachine::onCount, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	_onApply[CIRCLE_TYPE] = std::bind(&CountStateMachine::onCircle, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_onApply[RANDOM_STRING_TYPE] = std::bind(&CountStateMachine::onRandomString, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+	srand(time(NULL));
 }
 
 CountStateMachine::~CountStateMachine()
@@ -171,7 +175,6 @@ void CountStateMachine::onApply(const char *buff, size_t length, int64_t applied
 	is.read(type, 0, true);
 
 	TLOG_DEBUG(type << ", appliedIndex:" << appliedIndex << ", size:" << _onApply.size() << endl);
-	LOG_CONSOLE_DEBUG << "length:" << length << ", type:" << type << ", appliedIndex:" << appliedIndex << ", size:" << _onApply.size() << endl;
 
 	auto it = _onApply.find(type);
 	assert(it != _onApply.end());
@@ -283,11 +286,160 @@ void CountStateMachine::onCircle(TarsInputStream<> &is, int64_t appliedIndex, co
 	}
 }
 
+string CountStateMachine::createRandomString(int length, INCLUDE_FLAG includes)
+{
+	static const char  Upper[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	static const char  Lower[] = "abcdefghijklmnopqrstuvwxyz";
+	static const char  Digit[] = "0123456789";
+
+	static size_t UpperLen = strlen(Upper);
+	static size_t LowerLen = strlen(Lower);
+	static size_t DigitLen = strlen(Digit);
+
+	vector<const char*> v;
+
+	size_t len = 0;
+
+	if(includes & DIGIT)
+	{
+		v.push_back(Digit);
+		len += DigitLen;
+	}
+	if(includes & LOWER)
+	{
+		v.push_back(Lower);
+		len += LowerLen;
+	}
+	if(includes & UPPER)
+	{
+		v.push_back(Upper);
+		len += UpperLen;
+	}
+
+	if(len == 0)
+	{
+		return "";
+	}
+
+	string s;
+	s.resize(length);
+
+	for(size_t i = 0; i < length; i++)
+	{
+		int at = rand() % len;
+
+		if(includes & DIGIT)
+		{
+			if(at < DigitLen)
+			{
+				s[i] = Digit[at];
+				continue;
+			}
+			else
+			{
+				at -= DigitLen;
+			}
+		}
+		if(includes & LOWER)
+		{
+			if(at < LowerLen)
+			{
+				s[i] = Lower[at];
+				continue;
+			}
+			else
+			{
+				at -= LowerLen;
+			}
+		}
+		if(includes & UPPER)
+		{
+			if(at < UpperLen)
+			{
+				s[i] = Upper[at];
+				continue;
+			}
+			else
+			{
+				at -= UpperLen;
+			}
+		}
+
+	}
+
+	return s;
+}
+
+void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)
+{
+	TLOG_DEBUG("appliedIndex:" << appliedIndex << endl);
+
+	RandomReq req;
+	is.read(req, 1, false);
+
+	string key = req.sBusinessName + "-" + req.sKey;
+
+	RandomRsp rsp;
+
+	while(true)
+	{
+		rsp.sString = createRandomString(req.length, (INCLUDE_FLAG)req.includes);
+
+		bool has;
+		rsp.iRet = hasNoLock(key + "-" + rsp.sString, has);
+
+		if(rsp.iRet != RT_SUCC)
+		{
+			rsp.sMsg = "get data from rocksdb error!";
+			break;
+		}
+
+		if(!has)
+		{
+			break;
+		}
+	}
+
+	if(rsp.iRet == RT_SUCC)
+	{
+		rocksdb::WriteBatch batch;
+		batch.Put(key, rsp.sString);
+		batch.Put("lastAppliedIndex", rocksdb::Slice((const char *)&appliedIndex, sizeof(appliedIndex)));
+
+		rocksdb::WriteOptions wOption;
+		wOption.sync = false;
+
+		auto s = _db->Write(wOption, &batch);
+
+		if(!s.ok())
+		{
+			rsp.iRet = RT_APPLY_ERROR;
+			rsp.sMsg = "save data to rocksdb error!";
+			TLOG_ERROR("Put: key:" << key << ", error!" << endl);
+			exit(-1);
+		}
+	}
+
+	if(callback)
+	{
+		Base::Count::async_response_random(callback->getCurrentPtr(), rsp.iRet, rsp);
+	}
+}
+
 int CountStateMachine::get(const QueryReq &req, CountRsp &rsp)
 {
 	std::string key = req.sBusinessName + "-" + req.sKey;
 
 	rsp.iRet = getNoLock(key, rsp.iCount);
+
+	return rsp.iRet;
+}
+
+int CountStateMachine::get(const QueryReq &req, RandomRsp &rsp)
+{
+	std::string key = req.sBusinessName + "-" + req.sKey;
+
+	rsp.iRet = getNoLock(key, rsp.sString);
 
 	return rsp.iRet;
 }
@@ -301,6 +453,46 @@ int CountStateMachine::getNoLock(const string &key, tars::Int64 &count)
 		count = TC_Common::strto<tars::Int64>(value);
 	}
 	else if (s.IsNotFound()) {
+	}
+	else
+	{
+		TLOG_ERROR("Get: " << key << ", error:" << s.ToString() << endl);
+
+		return RT_DATA_ERROR;
+	}
+
+	return RT_SUCC;
+}
+
+int CountStateMachine::getNoLock(const string &key, string &value)
+{
+	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), key, &value);
+	if (s.ok())
+	{
+		;
+	}
+	else if (s.IsNotFound()) {
+	}
+	else
+	{
+		TLOG_ERROR("Get: " << key << ", error:" << s.ToString() << endl);
+
+		return RT_DATA_ERROR;
+	}
+
+	return RT_SUCC;
+}
+
+int CountStateMachine::hasNoLock(const string &key, bool &has)
+{
+	string value;
+	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), key, &value);
+	if (s.ok())
+	{
+		has = true;
+	}
+	else if (s.IsNotFound()) {
+		has = false;
 	}
 	else
 	{
