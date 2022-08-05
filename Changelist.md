@@ -3,10 +3,14 @@
 
 ### cn
 - 增加唯一字符串的生成
+- 支持唯一字符串超时设置
+- 支持查询是否存在字符串
 
 ### en
-- add unique random string
-- 
+- feature: add unique random string
+- feature: support random string expire time
+- feature: support query random string exists
+
 ## 20220725 v1.1.0
 
 ### cn
