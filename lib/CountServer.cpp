@@ -54,6 +54,8 @@ void CountServer::initialize()
 
 	onInitializeRaft(raftOptions, "CountObj", dataPath + "CountLog-" + TC_Common::tostr(_index));
 
+	srand(time(NULL));
+
 	TARS_ADD_ADMIN_CMD_NORMAL("count.get", CountServer::cmdGet);
 	TARS_ADD_ADMIN_CMD_NORMAL("count.set", CountServer::cmdSet);
 	TARS_ADD_ADMIN_CMD_NORMAL("count.circle", CountServer::cmdCircle);
@@ -80,7 +82,7 @@ bool CountServer::cmdGet(const string&command, const string&params, string& resu
 		skey.sKey = v[1];
 
 		CountRsp data;
-		int ret = _stateMachine->get(skey, data);
+		int ret = _stateMachine->getCount(skey, data);
 
 		if(ret == RT_SUCC)
 		{

@@ -53,6 +53,7 @@ module Base
         1 optional  string                  sKey;                        // 当前业务下的计数key
         2 optional  int                     length = 16;                 // 字符串长度
         3 optional  int                     includes = 0xff;             // 包含符号
+        4 optional  long                    expireTime = 0;              // 过期时间(秒), ==0 表示数据不过期
     };
 
     struct RandomRsp
@@ -60,6 +61,22 @@ module Base
         0 optional  int                     iRet;                       // 状态码
         1 optional  string                  sMsg;                       // 消息内容
         2 optional  string                  sString;                    // 当前字符串
+    };
+
+    struct SetRandomReq
+    {
+        0 optional  string                  sBusinessName;              // 业务ID，方便跟进问题
+        1 optional  string                  sKey;                       // 当前业务下的计数key
+        2 optional  string                  sString;                    // 随机字符串
+        3 optional  long                    expireTime = 0;             // 过期时间(秒), ==0 表示数据不过期
+    };
+
+    struct HasRandomReq
+    {
+        0 optional  string                  sBusinessName;              // 业务ID，方便跟进问题
+        1 optional  string                  sKey;                       // 当前业务下的计数key
+        2 optional  string                  sString;                    // 随机字符串
+        3 optional  bool                    leader = true;              // leader处理
     };
 
     interface Count
@@ -85,8 +102,13 @@ module Base
         int random(RandomReq req, out RandomRsp rsp);
 
         /**
-         * 生成随机字符串
+         * 主动设置随机字符串
          */
-        int randomQuery(QueryReq req, out RandomRsp rsp);
+        int setRandom(SetRandomReq req);
+
+        /**
+         * 随机字符串是否存在
+         */
+        int hasRandom(HasRandomReq req, out bool exist);
     };
 };

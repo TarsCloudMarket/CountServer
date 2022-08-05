@@ -15,6 +15,9 @@ namespace rocksdb
 class DB;
 class Iterator;
 class Comparator;
+class ColumnFamilyHandle;
+class WriteBatch;
+
 }
 
 using namespace Base;
@@ -27,6 +30,7 @@ public:
 	const static string COUNT_TYPE;
 	const static string CIRCLE_TYPE;
 	const static string RANDOM_STRING_TYPE;
+	const static string SET_RANDOM_STRING_TYPE;
 
 	/**
 	 * 构造
@@ -109,15 +113,15 @@ public:
 	 * @param rsp
 	 * @return
 	 */
-	int get(const QueryReq &req, CountRsp &rsp);
+	int getCount(const QueryReq &req, CountRsp &rsp);
 
 	/**
 	 *
 	 * @param req
-	 * @param rsp
+	 * @param exist
 	 * @return
 	 */
-	int get(const QueryReq &req, RandomRsp &rsp);
+	int hasRandom(const HasRandomReq &req, bool &exist);
 
 	/**
 	 * close
@@ -128,9 +132,14 @@ protected:
 
 	using onapply_type = std::function<void(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)>;
 
+	string getTableName(const string &table) { return "c-" + table; }
+
+	rocksdb::ColumnFamilyHandle* createTable(const string &table);
+
 	void onCount(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 	void onCircle(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 	void onRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
+	void onSetRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback);
 
 	void open(const string &dbDir);
 
@@ -138,15 +147,18 @@ protected:
 
 	string createRandomString(int length, INCLUDE_FLAG includes);
 
-	int getNoLock(const string &key, tars::Int64 &value);
+	int getCountNoLock(const string &key, tars::Int64 &value);
 
-	int getNoLock(const string &key, string &value);
+	int getNoLock(rocksdb::ColumnFamilyHandle*, const string &key,  bool &exist);
 
-	int hasNoLock(const string &key, bool &has);
+	int hasNoLock(rocksdb::ColumnFamilyHandle*, const string &key, bool &has);
 
 protected:
 	string          _raftDataDir;
 	rocksdb::DB     *_db = NULL;
+	std::mutex		_mutex;
+
+	unordered_map<string, rocksdb::ColumnFamilyHandle*> _column_familys;
 
 	unordered_map<string, onapply_type>	_onApply;
 };

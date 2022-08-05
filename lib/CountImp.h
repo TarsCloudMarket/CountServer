@@ -32,9 +32,15 @@ public:
 	virtual int random(const RandomReq &req, RandomRsp &rsp, tars::CurrentPtr current);
 
 	/**
-	 * 生成随机字符串
+	 * 主动设置随机字符串
 	 */
-	virtual int randomQuery(const QueryReq &req, RandomRsp &rsp, tars::CurrentPtr current);
+	virtual int setRandom(const SetRandomReq &req, tars::CurrentPtr current);
+
+	/*
+	 * 随机字符串是否存在
+	 */
+	virtual int hasRandom(const HasRandomReq &req, bool &exist, tars::CurrentPtr current);
+
 protected:
 
 	shared_ptr<RaftNode>    _raftNode;

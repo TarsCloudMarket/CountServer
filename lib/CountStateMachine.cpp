@@ -5,6 +5,7 @@
 #include "CountStateMachine.h"
 #include "rocksdb/db.h"
 #include "rocksdb/options.h"
+#include "rocksdb/compaction_filter.h"
 #include "rocksdb/utilities/checkpoint.h"
 #include "servant/Application.h"
 #include "RaftNode.h"
@@ -12,6 +13,37 @@
 const string CountStateMachine::COUNT_TYPE  = "1";
 const string CountStateMachine::CIRCLE_TYPE  = "2";
 const string CountStateMachine::RANDOM_STRING_TYPE  = "3";
+const string CountStateMachine::SET_RANDOM_STRING_TYPE = "4";
+
+
+//////////////////////////////////////////////////////////////////////////////////////
+class TTLCompactionFilter : public rocksdb::CompactionFilter
+{
+public:
+	virtual bool Filter(int /*level*/, const rocksdb::Slice& /*key*/,
+			const rocksdb::Slice& existing_value,
+			std::string* /*new_value*/,
+			bool* /*value_changed*/) const {
+
+		int expireTime = 0;
+		TarsInputStream<> is;
+		is.setBuffer(existing_value.data(), existing_value.size());
+		is.read(expireTime, 0, false);
+		if(expireTime !=0 && expireTime < TNOW)
+		{
+			//过期了!
+			return true;
+		}
+
+		return false;
+	}
+
+	const char *Name() const
+	{
+		return "Count.TTLCompactionFilter";
+	}
+
+};
 
 CountStateMachine::CountStateMachine(const string &dataPath)
 {
@@ -20,8 +52,8 @@ CountStateMachine::CountStateMachine(const string &dataPath)
 	_onApply[COUNT_TYPE] = std::bind(&CountStateMachine::onCount, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	_onApply[CIRCLE_TYPE] = std::bind(&CountStateMachine::onCircle, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 	_onApply[RANDOM_STRING_TYPE] = std::bind(&CountStateMachine::onRandomString, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+	_onApply[SET_RANDOM_STRING_TYPE] = std::bind(&CountStateMachine::onSetRandomString, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-	srand(time(NULL));
 }
 
 CountStateMachine::~CountStateMachine()
@@ -37,10 +69,54 @@ void CountStateMachine::open(const string &dbDir)
 
 	// open rocksdb data dir
 	rocksdb::Options options;
+
 	options.create_if_missing = true;
-	rocksdb::Status status = rocksdb::DB::Open(options, dbDir, &_db);
-	if (!status.ok()) {
-		throw std::runtime_error(status.ToString());
+	options.level_compaction_dynamic_level_bytes = true;
+	options.periodic_compaction_seconds = 3600;
+
+	std::vector<rocksdb::ColumnFamilyDescriptor> column_families;
+
+	vector<string> columnFamilies;
+
+	rocksdb::Status status = rocksdb::DB::ListColumnFamilies(options, dbDir, &columnFamilies);
+
+	if (columnFamilies.empty())
+	{
+		status = rocksdb::DB::Open(options, dbDir, &_db);
+		if (!status.ok())
+		{
+			throw std::runtime_error(status.ToString());
+		}
+	}
+	else
+	{
+		std::vector<rocksdb::ColumnFamilyDescriptor> columnFamiliesDesc;
+		for (auto &f : columnFamilies)
+		{
+			rocksdb::ColumnFamilyDescriptor c;
+
+			c.name = f;
+
+			if (c.name != "default" )
+			{
+				c.options.compaction_filter = new TTLCompactionFilter();
+			}
+
+			columnFamiliesDesc.push_back(c);
+		}
+
+		std::vector<rocksdb::ColumnFamilyHandle *> handles;
+		status = rocksdb::DB::Open(options, dbDir, columnFamiliesDesc, &handles, &_db);
+		if (!status.ok())
+		{
+			TLOG_ERROR("Open " << dbDir << ", error:" << status.ToString() << endl);
+			throw std::runtime_error(status.ToString());
+		}
+
+		for (auto &h : handles)
+		{
+			_column_familys[h->GetName()] = h;
+		}
 	}
 }
 
@@ -194,7 +270,7 @@ void CountStateMachine::onCount(TarsInputStream<> &is, int64_t appliedIndex, con
 	CountRsp rsp;
 	rsp.iCount = req.iDefault;
 
-	rsp.iRet = getNoLock(key, rsp.iCount);
+	rsp.iRet = getCountNoLock(key, rsp.iCount);
 
 	if(rsp.iRet != RT_SUCC)
 	{
@@ -244,7 +320,7 @@ void CountStateMachine::onCircle(TarsInputStream<> &is, int64_t appliedIndex, co
 	CountRsp rsp;
 	rsp.iCount = req.iMinNum;
 
-	rsp.iRet = getNoLock(key, rsp.iCount);
+	rsp.iRet = getCountNoLock(key, rsp.iCount);
 
 	if(rsp.iRet != RT_SUCC)
 	{
@@ -370,6 +446,33 @@ string CountStateMachine::createRandomString(int length, INCLUDE_FLAG includes)
 	return s;
 }
 
+rocksdb::ColumnFamilyHandle* CountStateMachine::createTable(const string &table)
+{
+	string tableName = getTableName(table);
+
+	std::lock_guard<std::mutex> lock(_mutex);
+	auto it = _column_familys.find(tableName);
+	if( it != _column_familys.end())
+	{
+		return it->second;
+	}
+
+	rocksdb::ColumnFamilyHandle* handle;
+	rocksdb::ColumnFamilyOptions options;
+	options.compaction_filter = new TTLCompactionFilter();
+
+	auto status = _db->CreateColumnFamily(options, tableName, &handle);
+	if (!status.ok())
+	{
+		TLOG_ERROR("CreateColumnFamily error:" << status.ToString() << endl);
+		throw std::runtime_error(status.ToString());
+	}
+
+	_column_familys[tableName] = handle;
+
+	return handle;
+}
+
 void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)
 {
 	TLOG_DEBUG("appliedIndex:" << appliedIndex << endl);
@@ -377,7 +480,9 @@ void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedInd
 	RandomReq req;
 	is.read(req, 1, false);
 
-	string key = req.sBusinessName + "-" + req.sKey;
+	rocksdb::ColumnFamilyHandle* handle = createTable(req.sBusinessName);
+
+	string key = req.sKey;
 
 	RandomRsp rsp;
 
@@ -386,7 +491,7 @@ void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedInd
 		rsp.sString = createRandomString(req.length, (INCLUDE_FLAG)req.includes);
 
 		bool has;
-		rsp.iRet = hasNoLock(key + "-" + rsp.sString, has);
+		rsp.iRet = hasNoLock(handle, key + "-" + rsp.sString, has);
 
 		if(rsp.iRet != RT_SUCC)
 		{
@@ -402,8 +507,23 @@ void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedInd
 
 	if(rsp.iRet == RT_SUCC)
 	{
+		int64_t expireTime = req.expireTime;
+		if(expireTime <0)
+		{
+			expireTime = 0;
+		}
+		if(expireTime > 0)
+		{
+			expireTime = expireTime + TNOW;
+		}
+
+		key = key + "-" + rsp.sString;
+		TarsOutputStream<BufferWriterString> os;
+		os.write(expireTime, 0);
+		os.write(rsp.sString, 1);
+
 		rocksdb::WriteBatch batch;
-		batch.Put(key, rsp.sString);
+		batch.Put(handle, key, os.getByteBuffer());
 		batch.Put("lastAppliedIndex", rocksdb::Slice((const char *)&appliedIndex, sizeof(appliedIndex)));
 
 		rocksdb::WriteOptions wOption;
@@ -426,25 +546,73 @@ void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedInd
 	}
 }
 
-int CountStateMachine::get(const QueryReq &req, CountRsp &rsp)
+
+void CountStateMachine::onSetRandomString(TarsInputStream<> &is, int64_t appliedIndex, const shared_ptr<ApplyContext> &callback)
+{
+	TLOG_DEBUG("appliedIndex:" << appliedIndex << endl);
+
+	SetRandomReq req;
+	is.read(req, 1, false);
+
+	rocksdb::ColumnFamilyHandle* handle = createTable(req.sBusinessName);
+
+	string key = req.sKey + "-" + req.sString;
+
+	int64_t expireTime = req.expireTime;
+	if (expireTime < 0)
+	{
+		expireTime = 0;
+	}
+
+	if (expireTime > 0)
+	{
+		expireTime = expireTime + TNOW;
+	}
+
+	TarsOutputStream<BufferWriterString> os;
+	os.write(expireTime, 0);
+	os.write(req.sString, 1);
+
+	rocksdb::WriteBatch batch;
+	batch.Put(handle, key, os.getByteBuffer());
+	batch.Put("lastAppliedIndex", rocksdb::Slice((const char*)&appliedIndex, sizeof(appliedIndex)));
+
+	rocksdb::WriteOptions wOption;
+	wOption.sync = false;
+
+	auto s = _db->Write(wOption, &batch);
+
+	if (!s.ok())
+	{
+		TLOG_ERROR("Put: key:" << key << ", error!" << endl);
+		exit(-1);
+	}
+
+	if (callback)
+	{
+		Base::Count::async_response_setRandom(callback->getCurrentPtr(), RT_SUCC);
+	}
+}
+
+int CountStateMachine::getCount(const QueryReq &req, CountRsp &rsp)
 {
 	std::string key = req.sBusinessName + "-" + req.sKey;
 
-	rsp.iRet = getNoLock(key, rsp.iCount);
+	rsp.iRet = getCountNoLock(key, rsp.iCount);
 
 	return rsp.iRet;
 }
 
-int CountStateMachine::get(const QueryReq &req, RandomRsp &rsp)
+int CountStateMachine::hasRandom(const HasRandomReq &req, bool &exist)
 {
-	std::string key = req.sBusinessName + "-" + req.sKey;
+	rocksdb::ColumnFamilyHandle* handle = createTable(req.sBusinessName);
 
-	rsp.iRet = getNoLock(key, rsp.sString);
+	std::string key = req.sKey + '-' + req.sString;
 
-	return rsp.iRet;
+	return getNoLock(handle, key, exist);
 }
 
-int CountStateMachine::getNoLock(const string &key, tars::Int64 &count)
+int CountStateMachine::getCountNoLock(const string &key, tars::Int64 &count)
 {
 	std::string value;
 	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), key, &value);
@@ -464,14 +632,28 @@ int CountStateMachine::getNoLock(const string &key, tars::Int64 &count)
 	return RT_SUCC;
 }
 
-int CountStateMachine::getNoLock(const string &key, string &value)
+int CountStateMachine::getNoLock(rocksdb::ColumnFamilyHandle* handle, const string &key,  bool &exist)
 {
-	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), key, &value);
+	string data;
+	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), handle, key, &data);
 	if (s.ok())
 	{
-		;
+		TarsInputStream<> is;
+		is.setBuffer(data.c_str(), data.length());
+
+		tars::Int64 expireTime;
+		is.read(expireTime, 0, false);
+
+		if(expireTime < TNOW)
+		{
+			exist = false;
+			return RT_SUCC;
+		}
+
+		exist = true;
 	}
 	else if (s.IsNotFound()) {
+		exist = false;
 	}
 	else
 	{
@@ -483,10 +665,10 @@ int CountStateMachine::getNoLock(const string &key, string &value)
 	return RT_SUCC;
 }
 
-int CountStateMachine::hasNoLock(const string &key, bool &has)
+int CountStateMachine::hasNoLock(rocksdb::ColumnFamilyHandle* handle, const string &key, bool &has)
 {
 	string value;
-	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), key, &value);
+	rocksdb::Status s = _db->Get(rocksdb::ReadOptions(), handle, key, &value);
 	if (s.ok())
 	{
 		has = true;
