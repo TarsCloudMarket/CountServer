@@ -54,6 +54,8 @@ module Base
         2 optional  int                     length = 16;                 // 字符串长度
         3 optional  int                     includes = 0xff;             // 包含符号
         4 optional  long                    expireTime = 0;              // 过期时间(秒), ==0 表示数据不过期
+        5 optional  string                  prefix;                      // 附加前缀
+        6 optional  string                  suffix;                      // 附加后缀
     };
 
     struct RandomRsp

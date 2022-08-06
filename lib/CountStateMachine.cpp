@@ -488,7 +488,7 @@ void CountStateMachine::onRandomString(TarsInputStream<> &is, int64_t appliedInd
 
 	while(true)
 	{
-		rsp.sString = createRandomString(req.length, (INCLUDE_FLAG)req.includes);
+		rsp.sString = req.prefix + createRandomString(req.length, (INCLUDE_FLAG)req.includes) + req.suffix;
 
 		bool has;
 		rsp.iRet = hasNoLock(handle, key + "-" + rsp.sString, has);
