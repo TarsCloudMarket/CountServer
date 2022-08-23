@@ -1,4 +1,13 @@
 
+## v1.2.1 (20220823)
+
+### en
+
+- use -static-gcc -static-libstdc++
+### cn
+
+- 默认使用-static-gcc -static-libstdc++, 静态编译, 以适配不同GCC的OS
+
 ## 20220805 v1.2.0
 
 ### cn

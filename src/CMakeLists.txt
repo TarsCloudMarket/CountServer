@@ -5,4 +5,4 @@ gen_server(Base CountServer tars)
 
 add_dependencies(CountServer raft)
 
-target_link_libraries(CountServer count raft rocksdb snappy)
+target_link_libraries(CountServer count raft rocksdb snappy -static-gcc -static-libstdc++)
