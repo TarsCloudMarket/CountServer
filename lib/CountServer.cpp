@@ -31,6 +31,7 @@ void CountServer::initialize()
 		conf.parseFile(ServerConfig::BasePath + "count.conf");
 
 		dataPath = conf.get("/root<storage-path>");
+
 	}
 
 	LOG_CONSOLE_DEBUG << "data path:" << dataPath << ", index:" << _index << ", node size:" << _nodeInfo.nodes.size() << endl;
@@ -52,7 +53,7 @@ void CountServer::initialize()
 	TLOG_DEBUG("maxLogEntriesTransfering:" << raftOptions.maxLogEntriesTransfering << endl);
 	TLOG_DEBUG("dataDir:" << raftOptions.dataDir << endl);
 
-	onInitializeRaft(raftOptions, "CountObj", dataPath + "CountLog-" + TC_Common::tostr(_index));
+	onInitializeRaft(raftOptions, "CountObj", dataPath + FILE_SEP + "CountLog-" + TC_Common::tostr(_index));
 
 	srand(time(NULL));
 
