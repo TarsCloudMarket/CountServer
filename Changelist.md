@@ -4,12 +4,15 @@
 
 ### en
 - Update the library of libraft for more stability and higher performance
-- After the service is started, use the deployed node 
+- After the service is started, use the deployed node
+- Regarding the issue of modifying the data directory, / has been added. Please be careful
+
  
 ### cn
 
 - 更新libraft,更稳定,性能更高
 - 服务启动以后, 以部署的节点为准
+- 修改数据目录的问题, 增加了 /, 请务必注意
 
 ## v1.2.1 (20220823)
 
