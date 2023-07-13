@@ -1,4 +1,16 @@
 
+
+## v1.3.0 (20230713)
+
+### en
+- Update the library of libraft for more stability and higher performance
+- After the service is started, use the deployed node 
+ 
+### cn
+
+- 更新libraft,更稳定,性能更高
+- 服务启动以后, 以部署的节点为准
+
 ## v1.2.1 (20220823)
 
 ### en
